@@ -541,10 +541,102 @@ class _HomeTabState extends State<HomeTab> {
                 Wrap(spacing: 6, runSpacing: 4, children: widget.weightLogs.map((e) => Chip(label: Text('${_friendlyDate(e['dateKey'])}: ${e['w']} kg'))).toList()),
               ]),
             ),
+                      const Divider(height: 28),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Daily AI Health Tip ✨', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                TextButton.icon(
+                  onPressed: () => setState(() => _tipOffset++),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('New Tip'),
+                ),
+              ],
+            ),
+            Builder(builder: (context) {
+              final aiTip = _getDailyAiTip(bmi, totalKcal, totalProtein);
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Colors.teal.shade50, Colors.cyan.shade50]),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.teal.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.psychology, color: Colors.teal),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(aiTip['title']!, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.teal.shade900))),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(aiTip['body']!, style: const TextStyle(fontSize: 13, height: 1.4)),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+
           ],
         ),
       ),
     );
+  }
+  int _tipOffset = 0;
+
+  Map<String, String> _getDailyAiTip(double bmi, int todayKcal, int todayProtein) {
+    final goal = widget.userData['goal'] as String;
+    final diet = widget.userData['diet'] as String;
+    final tips = <Map<String, String>>[];
+
+    if (todayKcal > 0 && todayProtein < 40) {
+      tips.add({
+        'title': 'Protein Boost Alert 💪',
+        'body': 'You have logged ${todayProtein}g protein today. Add a bowl of curd, sprouted moong, paneer, dal, or 2 egg whites to hit your daily target.',
+      });
+    }
+    if (bmi >= 25.0 || goal == 'Weight Loss') {
+      tips.addAll([
+        {
+          'title': 'Smart Portion Swap (BMI ${bmi.toStringAsFixed(1)}) 🥗',
+          'body': 'Start lunch and dinner with a bowl of cucumber-carrot salad before eating rice or rotis to naturally cut calorie intake by 20%.',
+        },
+        {
+          'title': 'Evening Craving Control ☕',
+          'body': 'Swap fried evening snacks for roasted makhana, buttermilk (chaas), or green tea to stay in a steady calorie deficit for your ${widget.userData['targW']} kg target.',
+        },
+        {
+          'title': 'Post-Meal Walk Habit 🚶',
+          'body': 'A brisk 15-minute walk after dinner helps regulate blood sugar and improves digestion without extra gym time.',
+        },
+      ]);
+    } else if (bmi < 18.5 || goal == 'Muscle Gain') {
+      tips.addAll([
+        {
+          'title': 'Healthy Calorie Surplus 🍌',
+          'body': 'At BMI ${bmi.toStringAsFixed(1)}, pair complex carbs like oats, bananas, or brown rice with $diet protein sources after workouts.',
+        },
+        {
+          'title': 'Consistent Meal Timing ⏱️',
+          'body': 'Include a protein-rich snack like peanut butter toast, paneer cubes, or milk before bedtime to support muscle recovery.',
+        },
+      ]);
+    } else {
+      tips.addAll([
+        {
+          'title': 'Balanced Plate Rule 🍽️',
+          'body': 'Keep your BMI (${bmi.toStringAsFixed(1)}) in the healthy zone by filling half your plate with vegetables, a quarter with $diet protein, and a quarter with whole grains.',
+        },
+        {
+          'title': 'Hydration & Metabolism 💧',
+          'body': 'Drink 2.5 to 3 liters of water today—mild dehydration often disguises itself as afternoon hunger.',
+        },
+      ]);
+    }
+
+    final idx = (DateTime.now().day + _tipOffset) % tips.length;
+    return tips[idx];
   }
 
   Widget _macroTile(String label, String val, Color col) => Column(children: [Text(val, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: col)), Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54))]);
