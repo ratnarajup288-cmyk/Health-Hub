@@ -68,8 +68,7 @@ class GeminiService {
     required String goal,
     required String diet,
   }) async {
-    if (apiKey.isEmpty) return null;
-    final uri = Uri.parse('https://googleapis.com');
+        final uri = Uri.parse('https://health-ai-proxy.ratnaraju-p288.workers.dev');
 
     final parts = <Map<String, dynamic>>[];
     if (imageFile != null && await imageFile.exists()) {
@@ -114,8 +113,7 @@ class GeminiService {
     required int todayKcal,
     required int todayProtein,
   }) async {
-    if (apiKey.isEmpty) return null;
-    final uri = Uri.parse('https://googleapis.com');
+        final uri = Uri.parse('https://health-ai-proxy.ratnaraju-p288.workers.dev');
     final prompt = 'You are an expert nutrition coach. Give 1 fresh, practical daily health/diet tip for a user with BMI ${bmi.toStringAsFixed(1)}, '
         'current weight $currW kg, target weight $targW kg, goal "$goal", diet "$diet", who has eaten $todayKcal kcal and ${todayProtein}g protein today. '
         'Random seed: ${DateTime.now().millisecondsSinceEpoch}. '
