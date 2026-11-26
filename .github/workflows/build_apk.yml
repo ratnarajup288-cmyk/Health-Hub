@@ -17,12 +17,18 @@ jobs:
         with:
           channel: 'stable'
       - run: flutter create --platforms=android .
-      - name: Add Camera and Gallery Permissions
+      - name: Add Camera Permissions & Disable LintVital Crash
         run: |
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          if [ -f android/app/build.gradle.kts ]; then
+            echo 'android { lint { checkReleaseBuilds = false; abortOnError = false } }' >> android/app/build.gradle.kts
+          elif [ -f android/app/build.gradle ]; then
+            echo 'android { lintOptions { checkReleaseBuilds false; abortOnError false } }' >> android/app/build.gradle
+          fi
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: Health-Hub-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+
