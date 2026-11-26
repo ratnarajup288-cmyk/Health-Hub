@@ -17,6 +17,9 @@ jobs:
         with:
           channel: 'stable'
       - run: flutter create --platforms=android .
+      - name: Add Camera and Gallery Permissions
+        run: |
+          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n    <application|' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
