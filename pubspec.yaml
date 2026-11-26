@@ -1,7 +1,7 @@
 name: health_hub
-description: Smart Health & Meal AI with BMI, Mobile Login, and Daily Macro History.
+description: Smart Health & Meal AI with Real Camera, BMI, Mobile Login, and Daily Macro History.
 publish_to: 'none'
-version: 2.0.0+1
+version: 3.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  image_picker: ^1.1.2
+  shared_preferences: ^2.3.2
 
 flutter:
   uses-material-design: true
