@@ -483,17 +483,7 @@ class _HomeTabState extends State<HomeTab> {
     final text = _foodCtrl.text.trim();
     if (text.isEmpty && _selectedImage == null) return;
     _apiKey = await UserStorage.getApiKey();
-
-    if (_apiKey.isEmpty) {
-      setState(() {
-        _identified = text.isEmpty ? 'Photo Selected' : text;
-        _estKcal = 0; _estProtein = 0; _estFat = 0; _estCarbs = 0;
-        _status = 'GEMINI API KEY REQUIRED 🔑';
-        _tip = 'Go to Personal Details (top right icon) and save your free Gemini API key from ://google.com to scan real food images.';
-      });
-      return;
-    }
-
+       
     setState(() { _analyzing = true; _status = null; });
     final bmi = _calculateBmi();
     final res = await GeminiService.analyzeMeal(
