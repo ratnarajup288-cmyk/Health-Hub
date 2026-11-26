@@ -116,7 +116,6 @@ class LandingPage extends StatelessWidget {
     );
   }
 }
-
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
   @override
@@ -147,11 +146,7 @@ class _AuthPageState extends State<AuthPage> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => MainScreen(userData: existing)), (_) => false);
     } else {
-      setState(() {
-        _checkedMobile = true;
-        _isNewUser = true;
-        _errorMsg = null;
-      });
+      setState(() { _checkedMobile = true; _isNewUser = true; _errorMsg = null; });
     }
   }
 
@@ -187,20 +182,10 @@ class _AuthPageState extends State<AuthPage> {
     if (!_acceptedTerms) { setState(() => _errorMsg = 'Please accept the Terms & Conditions.'); return; }
 
     final todayKey = _dateKey(DateTime.now());
-
     final newUserData = <String, dynamic>{
-      'name': name,
-      'mobile': mobile,
-      'age': '28',
-      'heightCm': h,
-      'startW': w,
-      'currW': w,
-      'targW': (w - 5).clamp(40.0, 200.0),
-      'goal': 'Weight Loss',
-      'diet': 'Balanced',
-      'weightLogs': [
-        {'dateKey': todayKey, 'w': w},
-      ],
+      'name': name, 'mobile': mobile, 'age': '28', 'heightCm': h, 'startW': w, 'currW': w,
+      'targW': (w - 5).clamp(40.0, 200.0), 'goal': 'Weight Loss', 'diet': 'Balanced',
+      'weightLogs': [{'dateKey': todayKey, 'w': w}],
       'mealLogs': [],
     };
 
@@ -223,33 +208,208 @@ class _AuthPageState extends State<AuthPage> {
             Text(_isNewUser ? 'New Number — Create Your Profile' : 'Enter Mobile Number to Login or Register', textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             TextField(
-              controller: _mobileCtrl,
-              enabled: !_checkedMobile,
-              keyboardType: TextInputType.phone,
-              maxLength: 10,
+              controller: _mobileCtrl, enabled: !_checkedMobile, keyboardType: TextInputType.phone, maxLength: 10,
               decoration: InputDecoration(
-                labelText: 'Mobile Number',
-                prefixText: '+91 ',
-                prefixIcon: const Icon(Icons.phone),
-                border: const OutlineInputBorder(),
-                counterText: '',
+                labelText: 'Mobile Number', prefixText: '+91 ', prefixIcon: const Icon(Icons.phone), border: const OutlineInputBorder(), counterText: '',
                 suffixIcon: _checkedMobile ? IconButton(icon: const Icon(Icons.edit), onPressed: () => setState(() { _checkedMobile = false; _isNewUser = false; })) : null,
               ),
             ),
             if (!_checkedMobile) ...[
               const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _lookupMobile,
-                icon: const Icon(Icons.login),
-                label: const Text('Continue with Mobile Number'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-              ),
+              ElevatedButton.icon(onPressed: _lookupMobile, icon: const Icon(Icons.login), label: const Text('Continue with Mobile Number'), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14))),
             ],
             if (_isNewUser) ...[
               const SizedBox(height: 14),
               TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person), border: OutlineInputBorder())),
               const SizedBox(height: 14),
               Row(children: [
+                Expanded(child: TextField(controller: _heightCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Height (cm)', border: OutlineInputBorder()))),
+                const SizedBox(width: 12),
+                Expanded(child: TextField(controller: _weightCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Weight (kg)', border: OutlineInputBorder()))),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Checkbox(value: _acceptedTerms, activeColor: Colors.teal, onChanged: (v) => setState(() { _acceptedTerms = v ?? false; _errorMsg = null; })),
+                Expanded(child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  const Text('I accept the '),
+                  GestureDetector(onTap: _showTermsDialog, child: const Text('Terms & Conditions', style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, decoration: TextDecoration.underline))),
+                ])),
+              ]),
+              const SizedBox(height: 14),
+              ElevatedButton.icon(onPressed: _register, icon: const Icon(Icons.check_circle), label: const Text('Register & Open Home'), style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14))),
+            ],
+            if (_errorMsg != null) ...[
+              const SizedBox(height: 12),
+              Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade300)), child: Text(_errorMsg!, style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600))),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+class MainScreen extends StatefulWidget {
+  final Map<String, dynamic> userData;
+  const MainScreen({super.key, required this.userData});
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _tab = 0;
+  late Map<String, dynamic> _data = Map<String, dynamic>.from(widget.userData);
+
+  String _dateKey(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  Future<void> _persist() async => await UserStorage.saveUser(_data['mobile'], _data);
+
+  Future<void> _logout() async {
+    await UserStorage.setActiveMobile(null);
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LandingPage()), (_) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weightLogs = List<Map<String, dynamic>>.from((_data['weightLogs'] as List).map((e) => Map<String, dynamic>.from(e)));
+    final mealLogs = List<Map<String, dynamic>>.from((_data['mealLogs'] as List).map((e) => Map<String, dynamic>.from(e)));
+
+    return Scaffold(
+      body: _tab == 0
+          ? HomeTab(
+              userData: _data, weightLogs: weightLogs, mealLogs: mealLogs,
+              onAddMeal: (meal) async { setState(() { mealLogs.add(meal); _data['mealLogs'] = mealLogs; }); await _persist(); },
+              onLogW: (w) async {
+                final todayKey = _dateKey(DateTime.now());
+                setState(() {
+                  _data['currW'] = w;
+                  final idx = weightLogs.indexWhere((e) => e['dateKey'] == todayKey);
+                  if (idx != -1) { weightLogs[idx]['w'] = w; } else { weightLogs.add({'dateKey': todayKey, 'w': w}); }
+                  _data['weightLogs'] = weightLogs;
+                });
+                await _persist();
+              },
+              onEdit: () => setState(() => _tab = 1),
+              onLogout: _logout,
+            )
+          : ProfileTab(
+              userData: _data,
+              onSave: (updated) async { setState(() { _data = updated; _tab = 0; }); await _persist(); },
+              onLogout: _logout,
+            ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home), label: 'Home & Daily Log'),
+          NavigationDestination(icon: Icon(Icons.person), label: 'Personal Details'),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeTab extends StatefulWidget {
+  final Map<String, dynamic> userData;
+  final List<Map<String, dynamic>> weightLogs, mealLogs;
+  final Future<void> Function(Map<String, dynamic>) onAddMeal;
+  final Future<void> Function(double) onLogW;
+  final VoidCallback onEdit, onLogout;
+  const HomeTab({super.key, required this.userData, required this.weightLogs, required this.mealLogs, required this.onAddMeal, required this.onLogW, required this.onEdit, required this.onLogout});
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  final _foodCtrl = TextEditingController(), _wCtrl = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  late String _selectedDateKey = _dateKey(DateTime.now());
+  File? _selectedImage;
+  String? _identified, _status, _tip;
+  int _estKcal = 0, _estProtein = 0, _estFat = 0, _estCarbs = 0;
+
+  String _dateKey(DateTime dt) => '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  String _friendlyDate(String key) {
+    final now = DateTime.now();
+    if (key == _dateKey(now)) return 'Today';
+    if (key == _dateKey(now.subtract(const Duration(days: 1)))) return 'Yesterday';
+    if (key == _dateKey(now.subtract(const Duration(days: 2)))) return 'Day Before Yesterday';
+    final parts = key.split('-');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${int.parse(parts[2])} ${months[int.parse(parts[1]) - 1]}';
+  }
+
+  double _calculateBmi() {
+    final h = (widget.userData['heightCm'] as num).toDouble() / 100.0;
+    final w = (widget.userData['currW'] as num).toDouble();
+    return h <= 0 ? 0.0 : w / (h * h);
+  }
+
+  String _bmiCategory(double bmi) => bmi < 18.5 ? 'Underweight' : bmi < 25.0 ? 'Normal' : bmi < 30.0 ? 'Overweight' : 'Obese';
+
+  Map<String, int> _estimateMacros(String food) {
+    final low = food.toLowerCase();
+    if (low.contains('biryani') || low.contains('fried')) return {'kcal': 650, 'protein': 24, 'fat': 26, 'carbs': 78};
+    if (low.contains('idli')) return {'kcal': 240, 'protein': 8, 'fat': 3, 'carbs': 46};
+    if (low.contains('paneer') || low.contains('chicken')) return {'kcal': 520, 'protein': 34, 'fat': 20, 'carbs': 48};
+    if (low.contains('roti') || low.contains('dal')) return {'kcal': 420, 'protein': 16, 'fat': 10, 'carbs': 64};
+    if (low.contains('salad') || low.contains('fruit') || low.contains('oats')) return {'kcal': 210, 'protein': 7, 'fat': 4, 'carbs': 36};
+    return {'kcal': 380, 'protein': 14, 'fat': 12, 'carbs': 52};
+  }
+
+  Future<void> _pickImageSource() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: Colors.teal),
+            title: const Text('Take Photo with Camera'),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final picked = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+              if (picked != null) setState(() { _selectedImage = File(picked.path); if (_foodCtrl.text.trim().isEmpty) _foodCtrl.text = 'Home Meal Photo'; });
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library, color: Colors.teal),
+            title: const Text('Choose Photo from Gallery'),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+              if (picked != null) setState(() { _selectedImage = File(picked.path); if (_foodCtrl.text.trim().isEmpty) _foodCtrl.text = 'Gallery Meal Photo'; });
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _analyze() {
+    final f = _foodCtrl.text.trim().isEmpty && _selectedImage != null ? 'Captured Meal Photo' : _foodCtrl.text.trim();
+    if (f.isEmpty) return;
+    final macros = _estimateMacros(f);
+    final bmi = _calculateBmi();
+    final currW = (widget.userData['currW'] as num).toDouble();
+    final targW = (widget.userData['targW'] as num).toDouble();
+    final goal = widget.userData['goal'] as String;
+
+    String st = 'BALANCED INTAKE ✅';
+    String tp = 'Fits your BMI (${bmi.toStringAsFixed(1)}) and $goal target.';
+    if ((bmi >= 25.0 || goal == 'Weight Loss' || currW > targW) && macros['kcal']! > 550) {
+      st = 'HIGH CALORIE / FAT — REDUCE PORTION 🔻';
+      tp = 'At BMI ${bmi.toStringAsFixed(1)}, keep meals under 500 kcal. Reduce rice/oil by 30% & add salad.';
+    } else if (macros['protein']! < 12) {
+      st = 'LOW PROTEIN — ADD PROTEIN BOOST ⚖️';
+      tp = 'Only ${macros['protein']}g protein. Pair with curd, sprouts, paneer, dal, or egg whites.';
+    }
+
+    setState(() {
+      _identified = f; _estKcal = macros['kcal']!; _estProtein = macros['protein']!; _estFat = macros['fat']!; _estCarbs = macros['carbs']!;
+      _status = st; _tip = tp;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     final bmi = _calculateBmi();
@@ -258,32 +418,21 @@ class _AuthPageState extends State<AuthPage> {
     final startW = (widget.userData['startW'] as num).toDouble();
 
     final now = DateTime.now();
-    final baseDates = [
-      _dateKey(now.subtract(const Duration(days: 2))),
-      _dateKey(now.subtract(const Duration(days: 1))),
-      _dateKey(now),
-    ];
-    for (final m in widget.mealLogs) {
-      if (!baseDates.contains(m['dateKey'])) baseDates.insert(0, m['dateKey']);
-    }
+    final baseDates = [_dateKey(now.subtract(const Duration(days: 2))), _dateKey(now.subtract(const Duration(days: 1))), _dateKey(now)];
+    for (final m in widget.mealLogs) { if (!baseDates.contains(m['dateKey'])) baseDates.insert(0, m['dateKey']); }
 
     final dayMeals = widget.mealLogs.where((m) => m['dateKey'] == _selectedDateKey).toList();
     int totalKcal = 0, totalProtein = 0, totalFat = 0, totalCarbs = 0;
     for (final m in dayMeals) {
-      totalKcal += (m['kcal'] as num).toInt();
-      totalProtein += (m['protein'] as num).toInt();
-      totalFat += (m['fat'] as num).toInt();
-      totalCarbs += (m['carbs'] as num).toInt();
+      totalKcal += (m['kcal'] as num).toInt(); totalProtein += (m['protein'] as num).toInt();
+      totalFat += (m['fat'] as num).toInt(); totalCarbs += (m['carbs'] as num).toInt();
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Health & Meal AI'),
-        actions: [
-          IconButton(icon: const Icon(Icons.person), tooltip: 'Profile', onPressed: widget.onEdit),
-          IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: widget.onLogout),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Health & Meal AI'), actions: [
+        IconButton(icon: const Icon(Icons.person), tooltip: 'Profile', onPressed: widget.onEdit),
+        IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: widget.onLogout),
+      ]),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -292,47 +441,24 @@ class _AuthPageState extends State<AuthPage> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.teal.shade200)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Hi, ${widget.userData['name']}! 👋', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                        Text('+91 ${widget.userData['mobile']} • ${widget.userData['goal']}', style: TextStyle(fontSize: 12, color: Colors.teal.shade800), overflow: TextOverflow.ellipsis),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Chip(
-                    backgroundColor: Colors.teal.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    label: Text('BMI ${bmi.toStringAsFixed(1)} (${_bmiCategory(bmi)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                  ),
-                ],
-              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Hi, ${widget.userData['name']}! 👋', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                  Text('+91 ${widget.userData['mobile']} • ${widget.userData['goal']}', style: TextStyle(fontSize: 12, color: Colors.teal.shade800), overflow: TextOverflow.ellipsis),
+                ])),
+                const SizedBox(width: 8),
+                Chip(backgroundColor: Colors.teal.shade700, padding: const EdgeInsets.symmetric(horizontal: 4), label: Text('BMI ${bmi.toStringAsFixed(1)} (${_bmiCategory(bmi)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+              ]),
             ),
             const SizedBox(height: 16),
             const Text('Daily Intake History (Calories, Protein & Fat)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
-                children: baseDates.map((dKey) {
-                  final selected = dKey == _selectedDateKey;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(_friendlyDate(dKey)),
-                      selected: selected,
-                      selectedColor: Colors.teal,
-                      labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                      onSelected: (_) => setState(() => _selectedDateKey = dKey),
-                    ),
-                  );
-                }).toList(),
-              ),
+              child: Row(children: baseDates.map((dKey) {
+                final selected = dKey == _selectedDateKey;
+                return Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(_friendlyDate(dKey)), selected: selected, selectedColor: Colors.teal, labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold), onSelected: (_) => setState(() => _selectedDateKey = dKey)));
+              }).toList()),
             ),
             const SizedBox(height: 10),
             Container(
@@ -349,10 +475,7 @@ class _AuthPageState extends State<AuthPage> {
                 ]),
                 if (dayMeals.isNotEmpty) ...[
                   const Divider(height: 18),
-                  ...dayMeals.map((m) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Text('• ${m['name']} — ${m['kcal']} kcal | P: ${m['protein']}g | F: ${m['fat']}g', style: const TextStyle(fontSize: 12)),
-                  )),
+                  ...dayMeals.map((m) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Text('• ${m['name']} — ${m['kcal']} kcal | P: ${m['protein']}g | F: ${m['fat']}g', style: const TextStyle(fontSize: 12)))),
                 ] else
                   const Padding(padding: EdgeInsets.only(top: 8), child: Text('No meals logged for this date yet.', style: TextStyle(fontSize: 12, color: Colors.grey))),
               ]),
@@ -361,19 +484,10 @@ class _AuthPageState extends State<AuthPage> {
             const Text('Snap or Upload Meal Photo', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             if (_selectedImage != null) ...[
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(_selectedImage!, height: 170, width: double.infinity, fit: BoxFit.cover),
-                  ),
-                  IconButton(
-                    icon: const CircleAvatar(backgroundColor: Colors.black54, child: Icon(Icons.close, color: Colors.white, size: 18)),
-                    onPressed: () => setState(() => _selectedImage = null),
-                  ),
-                ],
-              ),
+              Stack(alignment: Alignment.topRight, children: [
+                ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_selectedImage!, height: 170, width: double.infinity, fit: BoxFit.cover)),
+                IconButton(icon: const CircleAvatar(backgroundColor: Colors.black54, child: Icon(Icons.close, color: Colors.white, size: 18)), onPressed: () => setState(() => _selectedImage = null)),
+              ]),
               const SizedBox(height: 8),
             ],
             TextField(controller: _foodCtrl, decoration: const InputDecoration(labelText: 'Meal name (e.g., 2 Rotis, Dal, Biryani)', border: OutlineInputBorder())),
@@ -396,18 +510,10 @@ class _AuthPageState extends State<AuthPage> {
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      await widget.onAddMeal({
-                        'dateKey': _selectedDateKey,
-                        'name': _identified!,
-                        'kcal': _estKcal,
-                        'protein': _estProtein,
-                        'fat': _estFat,
-                        'carbs': _estCarbs,
-                      });
+                      await widget.onAddMeal({'dateKey': _selectedDateKey, 'name': _identified!, 'kcal': _estKcal, 'protein': _estProtein, 'fat': _estFat, 'carbs': _estCarbs});
                       setState(() { _status = null; _foodCtrl.clear(); _selectedImage = null; });
                     },
-                    icon: const Icon(Icons.add_task),
-                    label: Text('Save Meal to ${_friendlyDate(_selectedDateKey)}'),
+                    icon: const Icon(Icons.add_task), label: Text('Save Meal to ${_friendlyDate(_selectedDateKey)}'),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800, foregroundColor: Colors.white),
                   ),
                 ]),
@@ -427,6 +533,22 @@ class _AuthPageState extends State<AuthPage> {
                 ]),
                 const SizedBox(height: 10),
                 Row(children: [
+                  Expanded(child: TextField(controller: _wCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Log today weight (kg)', isDense: true, border: OutlineInputBorder()))),
+                  const SizedBox(width: 8),
+                  ElevatedButton(onPressed: () async { final v = double.tryParse(_wCtrl.text); if (v != null && v > 20 && v < 300) { await widget.onLogW(v); _wCtrl.clear(); } }, child: const Text('Log')),
+                ]),
+                const SizedBox(height: 8),
+                Wrap(spacing: 6, runSpacing: 4, children: widget.weightLogs.map((e) => Chip(label: Text('${_friendlyDate(e['dateKey'])}: ${e['w']} kg'))).toList()),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _macroTile(String label, String val, Color col) => Column(children: [Text(val, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: col)), Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54))]);
+}
 class ProfileTab extends StatefulWidget {
   final Map<String, dynamic> userData;
   final Future<void> Function(Map<String, dynamic>) onSave;
@@ -615,4 +737,3 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 }
-
