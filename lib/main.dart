@@ -408,7 +408,7 @@ class _HomeTabState extends State<HomeTab> {
     if (key == _dateKey(now.subtract(const Duration(days: 2)))) return 'Day Before Yesterday';
     final parts = key.split('-');
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${int.parse(parts)} ${months[int.parse(parts) - 1]}';
+    return '${int.parse(parts.elementAt(2))} ${months.elementAt(int.parse(parts.elementAt(1)) - 1)}';
   }
 
   double _calculateBmi() {
